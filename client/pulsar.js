@@ -1,5 +1,5 @@
 Pulsar = {
-	canvas: null,
+    canvas: null,
     context: null,
     xCoord: function(code){
         return (Cursor.x || 0.5) * Pulsar.canvas.width;
