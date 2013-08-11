@@ -1,17 +1,28 @@
 Pulsar = {
     canvas: null,
     context: null,
+    length: function(){
+        return Math.sqrt(Math.pow(Pulsar.canvas.height, 2) + Math.pow(Pulsar.canvas.width,2));
+    },
     speed: function(){
-        return ((Pulsar.canvas.height + Pulsar.canvas.width) * 0.00005);
+        return Pulsar.length() * 0.0001;
     },
     stopTime: function(){
-        return new Date() - (Math.max(Pulsar.canvas.height, Pulsar.canvas.width) / Pulsar.speed() )
+        return Pulsar.serverTime() - (Pulsar.length() / Pulsar.speed());
+    },
+    timeOffset: 0,
+    updateTimeOffset: function() {
+        Meteor.call("serverTime", function(error,result) {
+            offset = new Date() - result;
+            Pulsar.timeOffset = (Pulsar.timeOffset + offset) / 2;
+        });
+    },
+    serverTime: function(){
+        return (new Date() * 1) + Pulsar.timeOffset;
     },
     animate: function(){
-        var cvs
-        cvs = Pulsar.canvas
-        var ctx
-        ctx = Pulsar.context
+        var cvs = Pulsar.canvas
+        var ctx = Pulsar.context
         cvs.height = window.innerHeight;
         cvs.width = window.innerWidth;
         ctx.clearRect(0, 0, cvs.width, cvs.height);
@@ -34,6 +45,8 @@ Cursor = {
 }
 
 Session.setDefault('id', Meteor.uuid())
+
+Meteor.setInterval(function() { Pulsar.updateTimeOffset();}, 15000);
 
 window.requestAnimationFrame = function(callback) {
     return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function(callback) { window.setTimeout(callback, 1000 / 60); };
@@ -62,9 +75,12 @@ Meteor.startup(function() {
     .mouseup(function(e){
         Meteor.call("stopPulse", 'mouse', Session.get('id'))
     })
+    Pulse.prototype.startAge = function() { return Pulsar.serverTime() - this.startTime; }
+    Pulse.prototype.stopAge = function() { return Pulsar.serverTime() - this.stopTime; }
 
-    Pulse.prototype.outsideRadius = function() { return this.startAge() * Pulsar.speed();}
-    Pulse.prototype.insideRadius = function() { return this.stopAge() * Pulsar.speed(); }
+    Pulse.prototype.outsideRadius = function() { return Math.ceil(this.startAge() * Pulsar.speed());}
+    Pulse.prototype.insideRadius = function() { return Math.floor(this.stopAge() * Pulsar.speed());}
 
+    Pulsar.updateTimeOffset();
     Pulsar.animate();
 })

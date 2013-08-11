@@ -7,6 +7,10 @@ Meteor.methods({
     },
     stopPulse: function(code, sessionId) {
         Pulses.update({code: code, sessionId: sessionId, stopTime: {$exists: false}}, {$set: {stopTime: (new Date() * 1)}}, {multi: true});
+    },
+    //get server time in milliseconds
+    serverTime: function () {
+        return new Date();
     }
 })
 
