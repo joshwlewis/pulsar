@@ -1,14 +1,11 @@
 Pulsar = {
     canvas: null,
     context: null,
-    xCoord: function(code){
-        return (Cursor.x || 0.5) * Pulsar.canvas.width;
-    },
-    yCoord: function(code){
-        return (Cursor.y || 0.5) * Pulsar.canvas.height;
-    },
     speed: function(){
-        return Pulsar.canvas.height + Pulsar.canvas.width;
+        return ((Pulsar.canvas.height + Pulsar.canvas.width) * 0.00005);
+    },
+    stopTime: function(){
+        return new Date() - (Math.max(Pulsar.canvas.height, Pulsar.canvas.width) / Pulsar.speed() )
     },
     animate: function(){
         var cvs
@@ -18,16 +15,16 @@ Pulsar = {
         cvs.height = window.innerHeight;
         cvs.width = window.innerWidth;
         ctx.clearRect(0, 0, cvs.width, cvs.height);
-        Pulses.find().forEach(function(pulse) {
+        Pulses.find({$or: [{stopTime: {$gt: Pulsar.stopTime()}}, {stopTime: {$exists: false}}]}).forEach(function(pulse) {
             ctx.beginPath();
-            ctx.arc(Pulsar.width * pulse.x, Pulsar.height * pulse.y, pulse.outsideRadius(), 0,  Math.PI * 2, false);
-            if (pulse.stopped) {
-                ctx.arc(Pulsar.width * pulse.x, Pulsar.height * pulse.y, pulse.insideRadius(), 0,  Math.PI * 2, true);
+            ctx.arc(cvs.width * pulse.x, cvs.height * pulse.y, pulse.outsideRadius(), 0,  Math.PI * 2, true);
+            if (pulse.stopped()) {
+                ctx.arc(cvs.width * pulse.x, cvs.height * pulse.y, pulse.insideRadius(), 0,  Math.PI * 2, false);
             }
-            ctx.fillStyle = pulse.color;
+            ctx.fillStyle = pulse.fill;
             ctx.fill();
         })
-        window.AnimationFrame(function(){ Pulsar.animate(); });
+        window.requestAnimationFrame(function(){ Pulsar.animate(); });
     }
 }
 
@@ -36,7 +33,9 @@ Cursor = {
     y: null
 }
 
-AnimationFrame = function(callback) {
+Session.setDefault('id', Meteor.uuid())
+
+window.requestAnimationFrame = function(callback) {
     return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function(callback) { window.setTimeout(callback, 1000 / 60); };
 }();
 
@@ -55,6 +54,13 @@ Meteor.startup(function() {
     .mouseout(function(e){
         Cursor.x = null;
         Cursor.y = null;
+    })
+
+    .mousedown(function(e){
+        Meteor.call("startPulse", Cursor.x, Cursor.y, 'mouse', Session.get('id'))
+    })
+    .mouseup(function(e){
+        Meteor.call("stopPulse", 'mouse', Session.get('id'))
     })
 
     Pulse.prototype.outsideRadius = function() { return this.startAge() * Pulsar.speed();}
