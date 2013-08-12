@@ -10,7 +10,7 @@ Meteor.methods({
     },
     //get server time in milliseconds
     serverTime: function () {
-        return new Date();
+        return new Date() * 1;
     }
 })
 
