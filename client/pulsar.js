@@ -18,7 +18,8 @@ Pulsar = {
         Meteor.call('serverTime', function(error, result) {
             var latency = new Date() - Pulsar.lastRequestTime;
             Pulsar.latency = Math.ceil((Pulsar.latency + latency) / 2);
-            Pulsar.timeOffset = new Date() - result - Pulsar.latency;
+            offset = new Date() - result - Pulsar.latency;
+            Pulsar.timeOffset = Math.floor((Pulsar.timeOffset + offset) / 2);
             Pulsar.lastRequestTime = null;
         });
     },
