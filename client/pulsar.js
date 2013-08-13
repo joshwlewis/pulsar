@@ -7,32 +7,13 @@ Pulsar = {
     speed: function(){
         return Pulsar.length() * 0.0001;
     },
-    stopTime: function(){
-        return Pulsar.serverTime() - (Pulsar.length() / Pulsar.speed());
-    },
-    timeOffset: 0,
-    lastRequestTime: null,
-    latency: 100,
-    updateTimeOffset: function() {
-        Pulsar.lastRequestTime = new Date() * 1
-        Meteor.call('serverTime', function(error, result) {
-            var latency = new Date() - Pulsar.lastRequestTime;
-            Pulsar.latency = Math.round((Pulsar.latency + latency) / 2);
-            offset = new Date() - result - Pulsar.latency;
-            Pulsar.timeOffset = Math.round((Pulsar.timeOffset + offset) / 2);
-            Pulsar.lastRequestTime = null;
-        });
-    },
-    serverTime: function(){
-        return (new Date() * 1) - Pulsar.timeOffset;
-    },
     animate: function(){
         var cvs = Pulsar.canvas;
         var ctx = Pulsar.context;
         cvs.width = window.innerWidth;
         cvs.height = window.innerHeight;
         ctx.clearRect(0, 0, cvs.width, cvs.height);
-        Pulses.find({$or: [{stopTime: {$gt: Pulsar.stopTime()}}, {stopTime: {$exists: false}}]}).forEach(function(pulse) {
+        Pulses.find({$or: [{stopTime: {$gt: Timing.stop()}}, {stopTime: {$exists: false}}]}).forEach(function(pulse) {
             var x = Math.round(cvs.width * pulse.x);
             var y = Math.round(cvs.height * pulse.y);
             ctx.beginPath();
@@ -47,6 +28,28 @@ Pulsar = {
     }
 }
 
+Timing = {
+    stop: function(){
+        return Timing.server() - (Pulsar.length() / Pulsar.speed());
+    },
+    offset: 0,
+    lastRequest: null,
+    latency: 100,
+    updateOffset: function() {
+        Timing.lastRequest = new Date() * 1
+        Meteor.call('serverTime', function(error, result) {
+            var latency = Math.round((new Date() - Timing.lastRequest) / 2);
+            Timing.latency = Math.round((Timing.latency + latency) / 2);
+            offset = new Date() - result - Timing.latency;
+            Timing.offset = Math.round((Timing.offset + offset) / 2);
+            Timing.lastRequest = null;
+        });
+    },
+    server: function(){
+        return (new Date() * 1) - Timing.offset;
+    },
+}
+
 Cursor = {
     x: null,
     y: null
@@ -54,7 +57,7 @@ Cursor = {
 
 Session.setDefault('id', Meteor.uuid())
 
-Meteor.setInterval(function() { Pulsar.updateTimeOffset(); }, 5000);
+Meteor.setInterval(function() { Timing.updateOffset(); }, 5000);
 
 window.requestAnimationFrame = function(callback) {
     return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function(callback) { window.setTimeout(callback, 1000 / 60); };
@@ -85,11 +88,15 @@ Meteor.startup(function() {
         Meteor.call("stopPulse", 'mouse', Session.get('id'))
     })
 
-    Pulse.prototype.startAge = function() { return Pulsar.serverTime() - this.startTime; }
-    Pulse.prototype.stopAge = function() { return Pulsar.serverTime() - this.stopTime; }
-    Pulse.prototype.outsideRadius = function() { return Math.abs(Math.round(this.startAge() * Pulsar.speed()));}
-    Pulse.prototype.insideRadius = function() { return Math.abs(Math.round(this.stopAge() * Pulsar.speed()));}
+    Pulse.prototype.startAge = function() { return Timing.server() - this.startTime; }
+    Pulse.prototype.stopAge = function() { return Timing.server() - this.stopTime; }
+    Pulse.prototype.outsideRadius = function() { 
+        return Math.abs(Math.round(this.startAge() * Pulsar.speed()));
+    }
+    Pulse.prototype.insideRadius = function() { 
+        return Math.abs(Math.round(this.stopAge() * Pulsar.speed()));
+    }
 
-    Pulsar.updateTimeOffset();
+    Timing.updateOffset();
     Pulsar.animate();
 })
