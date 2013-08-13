@@ -13,17 +13,25 @@ Pulsar = {
         cvs.width = window.innerWidth;
         cvs.height = window.innerHeight;
         ctx.clearRect(0, 0, cvs.width, cvs.height);
-        Pulses.find({$or: [{stopTime: {$gt: Timing.stop()}}, {stopTime: {$exists: false}}]}).forEach(function(pulse) {
-            var x = Math.round(cvs.width * pulse.x);
-            var y = Math.round(cvs.height * pulse.y);
-            ctx.beginPath();
-            ctx.arc(x, y, pulse.outsideRadius(), 0,  Math.PI * 2, true);
-            if (pulse.stopped()) {
-                ctx.arc(x, y, pulse.insideRadius(), 0,  Math.PI * 2, false);
-            }
-            ctx.fillStyle = pulse.fill;
-            ctx.fill();
-        })
+        var pulses = Pulses.find({$or: [{stopTime: {$gt: Timing.stop()}}, {stopTime: {$exists: false}}]})
+        if (!pulses.count()) {
+            ctx.font = Math.round(Pulsar.length() * 0.025) + 'px Verdana';
+            ctx.fillStyle = "#CCC"
+            ctx.textAlign = 'center';
+            ctx.fillText("(Someone click me!)", Math.round(cvs.width / 2), Math.round(cvs.height / 2));
+        } else { 
+            pulses.forEach(function(pulse) {
+                var x = Math.round(cvs.width * pulse.x);
+                var y = Math.round(cvs.height * pulse.y);
+                ctx.beginPath();
+                ctx.arc(x, y, pulse.outsideRadius(), 0,  Math.PI * 2, true);
+                if (pulse.stopped()) {
+                    ctx.arc(x, y, pulse.insideRadius(), 0,  Math.PI * 2, false);
+                }
+                ctx.fillStyle = pulse.fill;
+                ctx.fill();
+            })
+        }
         window.requestAnimationFrame(function(){ Pulsar.animate(); });
     }
 }
@@ -63,7 +71,7 @@ window.requestAnimationFrame = function(callback) {
     return window.requestAnimationFrame || window.webkitRequestAnimationFrame || window.mozRequestAnimationFrame || window.oRequestAnimationFrame || window.msRequestAnimationFrame || function(callback) { window.setTimeout(callback, 1000 / 60); };
 }();
 
-Deps.autorun(function () { Meteor.subscribe("pulses", Session.get("roomId")); });
+Deps.autorun(function () { Meteor.subscribe("pulses"); });
 
 Meteor.startup(function() {
 

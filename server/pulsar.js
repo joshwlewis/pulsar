@@ -20,6 +20,6 @@ Meteor.publish("pulses", function(){
 
 // Periodic data cleanup (deletes old pulses)
 Meteor.setInterval(function() {
-    Pulses.remove({stopTime: {$lt: new Date() - 180000}});
-    Pulses.remove({startTime: {$lt: new Date() - 360000}})
-}, 15000);
+    Pulses.remove({stopTime: {$lt: new Date() - 150000}});
+    Pulses.remove({startTime: {$lt: new Date() - 300000}})
+}, 10000);
